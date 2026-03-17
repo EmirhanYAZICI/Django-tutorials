@@ -1,0 +1,51 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sonuçlar</title>
+    <link rel="stylesheet" href="{% static 'polls/style.css' %}">
+</head>
+<body>
+    <main class="container">
+        <h1>📊 Sonuçlar</h1>
+        <h2>{{ question.question_text }}</h2>
+
+        <div class="results-container" style="margin-top: 30px;">
+            <ul class="results-list">
+            {% for choice in question.choice_set.all %}
+                <li class="result-item">
+                    <div class="result-text">
+                        <span>{{ choice.choice_text }}</span>
+                        <span>{{ choice.votes }} oy</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        {# Basit bir yüzde hesaplama görseli #}
+                        <div class="progress-bar-fill" style="width: 0%" data-votes="{{ choice.votes }}" data-total="{{ question.total_votes }}"></div>
+                    </div>
+                </li>
+            {% endfor %}
+            </ul>
+        </div>
+
+        <script>
+            document.querySelectorAll('.progress-bar-fill').forEach(bar => {
+                const votes = parseInt(bar.getAttribute('data-votes'));
+                const total = parseInt(bar.getAttribute('data-total'));
+                if (total > 0) {
+                    const percent = (votes / total) * 100;
+                    setTimeout(() => {
+                        bar.style.width = percent + '%';
+                    }, 100);
+                }
+            });
+        </script>
+
+        <div style="margin-top: 40px;">
+            <a href="{% url 'polls:detail' question.id %}" class="btn">Tekrar Oy Ver</a>
+            <a href="{% url 'polls:index' %}" class="back-link">← Diğer Sorular</a>
+        </div>
+    </main>
+</body>
+</html>
