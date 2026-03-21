@@ -23,7 +23,10 @@
                 {{ result.description }}
             </div>
 
-            <a href="{% url 'polls:index' %}" class="btn">Başka Bir Test Çöz</a>
+            <div style="display: flex; gap: 15px; margin-top: 20px;">
+                <a href="{% url 'polls:detail' result.category.id %}" class="btn" style="background: rgba(255,255,255,0.1); flex: 1;">Yeniden Çöz</a>
+                <a href="{% url 'polls:index' %}" class="btn" style="flex: 2;">Testlere Dön</a>
+            </div>
         </div>
 
         <div class="back-link">

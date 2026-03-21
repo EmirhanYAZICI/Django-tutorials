@@ -170,8 +170,9 @@ input[type="radio"]:checked + .choice-label {
 
 .result-image {
     width: 100%;
-    height: 400px;
-    object-fit: cover;
+    max-height: 500px;
+    object-fit: contain;
+    background: rgba(0, 0, 0, 0.2);
     border-radius: 24px;
     margin-bottom: 30px;
     border: 1px solid var(--glass-border);
