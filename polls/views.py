@@ -1,59 +1,61 @@
-from django.db.models import F
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 from django.views import generic
-from django.utils import timezone
+from django.db.models import Count
+from collections import Counter
 
-from .models import Choice, Question
+from .models import Category, Question, Choice, PersonalityResult
 
 
 class IndexView(generic.ListView):
     template_name = "polls/index.html"
-    context_object_name = "latest_question_list"
+    context_object_name = "categories"
 
     def get_queryset(self):
-        """
-        Return the last five published questions (not including those set to be
-        published in the future).
-        """
-        return Question.objects.filter(pub_date__lte=timezone.now()).order_by("-pub_date")[:5]
+        """Return all personality test categories."""
+        return Category.objects.all()
 
 
-class DetailView(generic.DetailView):
-    model = Question
+class CategoryDetailView(generic.DetailView):
+    model = Category
     template_name = "polls/detail.html"
+
+
+def calculate_personality(request, pk):
+    category = get_object_or_404(Category, pk=pk)
+    answers = []
     
-    def get_queryset(self):
-        """
-        Excludes any questions that aren't published yet.
-        """
-        return Question.objects.filter(pub_date__lte=timezone.now())
+    # Collect trait from each selected choice
+    for question in category.questions.all():
+        choice_id = request.POST.get(f"question_{question.id}")
+        if choice_id:
+            try:
+                choice = Choice.objects.get(pk=choice_id)
+                if choice.trait:
+                    answers.append(choice.trait)
+            except Choice.DoesNotExist:
+                pass
+
+    if not answers:
+        return render(request, "polls/detail.html", {
+            "category": category,
+            "error_message": "Lütfen en az bir soruyu cevaplayın.",
+        })
+
+    # Find the most common trait
+    most_common_trait = Counter(answers).most_common(1)[0][0]
+    
+    # Get the corresponding Result
+    result = PersonalityResult.objects.filter(category=category, trait=most_common_trait).first()
+    
+    if not result:
+        # Fallback if no result defined for that trait
+        return HttpResponseRedirect(reverse("polls:index"))
+
+    return HttpResponseRedirect(reverse("polls:result", args=(result.id,)))
 
 
-class ResultsView(generic.DetailView):
-    model = Question
-    template_name = "polls/results.html"
-
-
-def vote(request, question_id):
-    question = get_object_or_404(Question, pk=question_id)
-    try:
-        selected_choice = question.choice_set.get(pk=request.POST["choice"])
-    except (KeyError, Choice.DoesNotExist):
-        # Redisplay the question voting form.
-        return render(
-            request,
-            "polls/detail.html",
-            {
-                "question": question,
-                "error_message": "You didn't select a choice.",
-            },
-        )
-    else:
-        selected_choice.votes = F("votes") + 1
-        selected_choice.save()
-        # Always return an HttpResponseRedirect after successfully dealing
-        # with POST data. This prevents data from being posted twice if a
-        # user hits the Back button.
-        return HttpResponseRedirect(reverse("polls:results", args=(question.id,)))
+def show_result(request, result_id):
+    result = get_object_or_404(PersonalityResult, pk=result_id)
+    return render(request, "polls/results.html", {"result": result})
